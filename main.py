@@ -1,39 +1,49 @@
 from binance.client import Client
 import time
+from datetime import datetime
 from signals import generate_signals
+from playsound import playsound
+import requests
+import bs4
+from bs4 import BeautifulSoup
+import nltk
+from textblob import TextBlob
+import textblob
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
-# Parámetros de variación
 variacion = 5  # Variación en los últimos 30 minutos en porcentaje
 variacion_100 = 7  # Variación en los últimos 30 minutos en porcentaje si tiene menos de 100k de volumen
 variacionfast = 2  # Variación en los últimos 2 minutos en porcentaje
-
 # Cliente Binance
 client = Client('', '', tld='com')
-
 def buscarticks():
     """Busca todos los símbolos de futuros en Binance"""
     ticks = []
     lista_ticks = client.futures_symbol_ticker()
-    print(f'Número de monedas encontradas: {len(lista_ticks)}')
-
+    # print(f'{bcolors.OKBLUE}Número de monedas encontradas: {len(lista_ticks)}{bcolors.ENDC}')
     for tick in lista_ticks:
         if tick['symbol'][-4:] != 'USDT':  # Seleccione solo monedas en par USDT
             continue
         ticks.append(tick['symbol'])
-
-    print(f'Número de monedas encontradas en par USDT: {len(ticks)}')
+    print(f'{bcolors.WARNING}Número de monedas encontradas en par USDT: {len(ticks)}{bcolors.ENDC}')
     return ticks
-
 def get_klines(tick):
     """Obtiene los datos de velas para un símbolo específico"""
-    klines = client.futures_klines(symbol=tick, interval=Client.KLINE_INTERVAL_1MINUTE, limit=30)
+    klines = client.futures_klines(symbol=tick, interval=Client.KLINE_INTERVAL_1MINUTE, limit=30,timeout=30)
     return klines
-
 def infoticks(tick):
     """Obtiene información adicional para un símbolo específico"""
     info = client.futures_ticker(symbol=tick)
     return info
-
 def human_format(volumen):
     """Formatea el volumen en una representación humana"""
     magnitude = 0
@@ -42,11 +52,17 @@ def human_format(volumen):
         volumen /= 1000.0
     return '%.2f%s' % (volumen, ['', 'K', 'M', 'G', 'T', 'P'][magnitude])
 
+
+
 def analizar_klines(tick, klines, knumber):
     """Analiza los datos de velas y genera señales de trading"""
+
+    # Obtener la hora actual
+    now = datetime.now()
+    current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+
     inicial = float(klines[0][4])
     final = float(klines[knumber][4])
-
     # LONG
     if inicial > final:
         result = round(((inicial - final) / inicial) * 100, 2)
@@ -54,13 +70,19 @@ def analizar_klines(tick, klines, knumber):
             info = infoticks(tick)
             volumen = float(info['quoteVolume'])
             if volumen > 100000000 or result >= variacion_100:
-                print(f'LONG: {tick}')
-                print(f'Variación: {result}%')
-                print(f'Volumen: {human_format(volumen)}')
-                print(f'Precio max: {info["highPrice"]}')
-                print(f'Precio min: {info["lowPrice"]}')
-                print('')
 
+                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
+                print(f'{bcolors.FAIL}{current_time} - LONG: {tick}{bcolors.ENDC}')
+                print(f'https://www.binance.com/es/futures/{tick}/')
+                print(f'https://www.bitget.com/futures/usdt/{tick}/')
+                print(f'{bcolors.OKCYAN}Variación: {result}%{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Volumen: {human_format(volumen)}{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Precio max: {info["highPrice"]}{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Precio min: {info["lowPrice"]}{bcolors.ENDC}')
+                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
+
+                # Reproducir sonido de alerta
+                # playsound('./campana.mp3')
     # SHORT
     if final > inicial:
         result = round(((final - inicial) / inicial) * 100, 2)
@@ -68,13 +90,17 @@ def analizar_klines(tick, klines, knumber):
             info = infoticks(tick)
             volumen = float(info['quoteVolume'])
             if volumen > 100000000 or result >= variacion_100:
-                print(f'SHORT: {tick}')
-                print(f'Variación: {result}%')
-                print(f'Volumen: {human_format(volumen)}')
-                print(f'Precio max: {info["highPrice"]}')
-                print(f'Precio min: {info["lowPrice"]}')
-                print('')
-
+                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
+                print(f'{bcolors.FAIL}{current_time} - SHORT: {tick}{bcolors.ENDC}')
+                print(f'https://www.binance.com/es/futures/{tick}/')
+                print(f'https://www.bitget.com/futures/usdt/{tick}/')
+                print(f'{bcolors.OKCYAN}Variación: {result}%{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Volumen: {human_format(volumen)}{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Precio max: {info["highPrice"]}{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Precio min: {info["lowPrice"]}{bcolors.ENDC}')
+                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
+                # Reproducir sonido de alerta
+                # playsound('./campana.mp3')
     # FAST
     if knumber >= 3:
         inicial = float(klines[knumber-2][4])
@@ -84,20 +110,24 @@ def analizar_klines(tick, klines, knumber):
             if result >= variacionfast:
                 info = infoticks(tick)
                 volumen = float(info['quoteVolume'])
-                print(f'FAST SHORT!: {tick}')
-                print(f'Variación: {result}%')
-                print(f'Volumen: {human_format(volumen)}')
-                print(f'Precio max: {info["highPrice"]}')
-                print(f'Precio min: {info["lowPrice"]}')
-                print('')
-
+                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
+                print(f'{bcolors.FAIL}{current_time} - FAST SHORT!: {tick}{bcolors.ENDC}')
+                print(f'https://www.binance.com/es/futures/{tick}/')
+                print(f'https://www.bitget.com/futures/usdt/{tick}/')
+                print(f'{bcolors.OKCYAN}Variación: {result}%{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Volumen: {human_format(volumen)}{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Precio max: {info["highPrice"]}{bcolors.ENDC}')
+                print(f'{bcolors.OKCYAN}Precio min: {info["lowPrice"]}{bcolors.ENDC}')
+                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
+                # Reproducir sonido de alerta
+                # playsound('./campana.mp3')
       # Generar señales basadas en indicadores técnicos
     technical_signals = generate_signals(tick, klines)
-
     # Imprimir todas las señales
     for signal in technical_signals:
         print(f'Señal {signal[0]}: {signal[1]} {signal[2]}')
-
+       # Reproducir sonido de alerta
+        playsound('./campana.mp3')  # Asegúrate de tener el archivo en el mismo directorio o proporciona la ruta completa
 while True:
     ticks = buscarticks()
     print('Escaneando monedas...')
