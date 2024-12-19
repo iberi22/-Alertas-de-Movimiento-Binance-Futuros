@@ -15,7 +15,7 @@ Este script de Python utiliza la API de Binance para escanear el mercado de futu
 1. Clona este repositorio:
 
    ```bash
-   git clone https://github.com/tu_usuario/tu_repositorio.git
+   git clone https://github.com/iberi22/-Alertas-de-Movimiento-Binance-Futuros.git
    ```
 
 2. Instala las dependencias:
