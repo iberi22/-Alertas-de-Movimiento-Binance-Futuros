@@ -1,143 +1,95 @@
+import streamlit as st
 from binance.client import Client
 import time
 from datetime import datetime
-from signals import generate_signals
-#from playsound import playsound
+from signals import generate_signals # Asumo que tienes un archivo signals.py
 import requests
-import bs4
 from bs4 import BeautifulSoup
 import nltk
 from textblob import TextBlob
-import textblob
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
-variacion = 5  # Variación en los últimos 30 minutos en porcentaje
-variacion_100 = 7  # Variación en los últimos 30 minutos en porcentaje si tiene menos de 100k de volumen
-variacionfast = 2  # Variación en los últimos 2 minutos en porcentaje
-# Cliente Binance
-client = Client('', '', tld='com')
-def buscarticks():
-    """Busca todos los símbolos de futuros en Binance"""
-    ticks = []
-    lista_ticks = client.futures_symbol_ticker()
-    # print(f'{bcolors.OKBLUE}Número de monedas encontradas: {len(lista_ticks)}{bcolors.ENDC}')
-    for tick in lista_ticks:
-        if tick['symbol'][-4:] != 'USDT':  # Seleccione solo monedas en par USDT
-            continue
-        ticks.append(tick['symbol'])
-    print(f'{bcolors.WARNING}Número de monedas encontradas en par USDT: {len(ticks)}{bcolors.ENDC}')
-    return ticks
-def get_klines(tick):
-    """Obtiene los datos de velas para un símbolo específico"""
-    klines = client.futures_klines(symbol=tick, interval=Client.KLINE_INTERVAL_1MINUTE, limit=30,timeout=30)
-    return klines
-def infoticks(tick):
-    """Obtiene información adicional para un símbolo específico"""
-    info = client.futures_ticker(symbol=tick)
-    return info
-def human_format(volumen):
-    """Formatea el volumen en una representación humana"""
-    magnitude = 0
-    while abs(volumen) >= 1000:
-        magnitude += 1
-        volumen /= 1000.0
-    return '%.2f%s' % (volumen, ['', 'K', 'M', 'G', 'T', 'P'][magnitude])
+# --- Funciones para obtener datos y procesarlos (reemplaza esto con tu lógica real) ---
+def obtener_datos_binance():
+    """Simula obtener datos de Binance (reemplaza con tu código real)"""
+    # Aquí iría tu código para interactuar con la API de Binance
+    # Por ejemplo: client = Client(api_key, api_secret)
+    #              precios = client.get_all_tickers()
+    # Para este ejemplo, simularemos datos:
+    return [
+        {"symbol": "BTCUSDT", "price": "45000"},
+        {"symbol": "ETHUSDT", "price": "3000"},
+        {"symbol": "BNBUSDT", "price": "400"},
+    ]
 
+def generar_senales_streamlit():
+    """Simula generar señales (reemplaza con tu código real)"""
+    # Aquí llamarías a tu función generate_signals()
+    # Por ejemplo: senales = generate_signals()
+    # Para este ejemplo, simularemos señales:
+    return [
+        {"symbol": "BTCUSDT", "signal": "Buy", "reason": "Price crossed moving average"},
+        {"symbol": "ETHUSDT", "signal": "Sell", "reason": "RSI overbought"},
+    ]
 
+def obtener_noticias_cripto():
+    """Simula obtener noticias de cripto (reemplaza con tu código real)"""
+    # Aquí iría tu código para hacer web scraping de noticias
+    # Por ejemplo: url = "pagina_de_noticias_cripto"
+    #              response = requests.get(url)
+    #              soup = BeautifulSoup(response.content, 'html.parser')
+    #              ... extraer noticias ...
+    # Para este ejemplo, simularemos noticias:
+    return [
+        {"title": "Bitcoin alcanza nuevo máximo", "link": "https://ejemplo.com/bitcoin-maximo"},
+        {"title": "Ethereum 2.0 se acerca", "link": "https://ejemplo.com/ethereum-2-0"},
+    ]
 
-def analizar_klines(tick, klines, knumber):
-    """Analiza los datos de velas y genera señales de trading"""
+def analizar_sentimiento_noticias(noticias):
+    """Simula analizar el sentimiento de las noticias (reemplaza con tu código real)"""
+    # Aquí iría tu código para analizar el sentimiento usando TextBlob
+    # Por ejemplo: for noticia in noticias:
+    #              blob = TextBlob(noticia['title'])
+    #              sentimiento = blob.sentiment.polarity
+    # Para este ejemplo, simularemos sentimiento general positivo:
+    return "Generalmente positivo"
 
-    # Obtener la hora actual
-    now = datetime.now()
-    current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+# --- Interfaz de Streamlit ---
+st.title("Dashboard de Criptomonedas")
 
-    inicial = float(klines[0][4])
-    final = float(klines[knumber][4])
-    # LONG
-    if inicial > final:
-        result = round(((inicial - final) / inicial) * 100, 2)
-        if result >= variacion:
-            info = infoticks(tick)
-            volumen = float(info['quoteVolume'])
-            if volumen > 100000000 or result >= variacion_100:
+st.header("Datos de Binance")
+datos_binance = obtener_datos_binance()
+if datos_binance:
+    st.dataframe(datos_binance) # Muestra los datos como una tabla interactiva
+else:
+    st.write("No se pudieron obtener datos de Binance.")
 
-                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
-                print(f'{bcolors.FAIL}{current_time} - LONG: {tick}{bcolors.ENDC}')
-                print(f'https://www.binance.com/es/futures/{tick}/')
-                print(f'https://www.bitget.com/futures/usdt/{tick}/')
-                print(f'{bcolors.OKCYAN}Variación: {result}%{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Volumen: {human_format(volumen)}{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Precio max: {info["highPrice"]}{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Precio min: {info["lowPrice"]}{bcolors.ENDC}')
-                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
+st.header("Señales de Trading")
+senales = generar_senales_streamlit()
+if senales:
+    for senal in senales:
+        st.subheader(f"Señal para {senal['symbol']}")
+        st.write(f"**Señal:** {senal['signal']}")
+        st.write(f"**Razón:** {senal['reason']}")
+        st.markdown("---") # Separador visual
+else:
+    st.write("No se generaron señales en este momento.")
 
-                # Reproducir sonido de alerta
-                # playsound('./campana.mp3')
-    # SHORT
-    if final > inicial:
-        result = round(((final - inicial) / inicial) * 100, 2)
-        if result >= variacion:
-            info = infoticks(tick)
-            volumen = float(info['quoteVolume'])
-            if volumen > 100000000 or result >= variacion_100:
-                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
-                print(f'{bcolors.FAIL}{current_time} - SHORT: {tick}{bcolors.ENDC}')
-                print(f'https://www.binance.com/es/futures/{tick}/')
-                print(f'https://www.bitget.com/futures/usdt/{tick}/')
-                print(f'{bcolors.OKCYAN}Variación: {result}%{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Volumen: {human_format(volumen)}{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Precio max: {info["highPrice"]}{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Precio min: {info["lowPrice"]}{bcolors.ENDC}')
-                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
-                # Reproducir sonido de alerta
-                # playsound('./campana.mp3')
-    # FAST
-    if knumber >= 3:
-        inicial = float(klines[knumber-2][4])
-        final = float(klines[knumber][4])
-        if inicial < final:
-            result = round(((final - inicial) / inicial) * 100, 2)
-            if result >= variacionfast:
-                info = infoticks(tick)
-                volumen = float(info['quoteVolume'])
-                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
-                print(f'{bcolors.FAIL}{current_time} - FAST SHORT!: {tick}{bcolors.ENDC}')
-                print(f'https://www.binance.com/es/futures/{tick}/')
-                print(f'https://www.bitget.com/futures/usdt/{tick}/')
-                print(f'{bcolors.OKCYAN}Variación: {result}%{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Volumen: {human_format(volumen)}{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Precio max: {info["highPrice"]}{bcolors.ENDC}')
-                print(f'{bcolors.OKCYAN}Precio min: {info["lowPrice"]}{bcolors.ENDC}')
-                print(f'{bcolors.WARNING}--------------------------------------------------{bcolors.ENDC}')
-                # Reproducir sonido de alerta
-                # playsound('./campana.mp3')
-      # Generar señales basadas en indicadores técnicos
-    technical_signals = generate_signals(tick, klines)
-    # Imprimir todas las señales
-    for signal in technical_signals:
-        print(f'Señal {signal[0]}: {signal[1]} {signal[2]}')
-       # Reproducir sonido de alerta
-        playsound('./campana.mp3')  # Asegúrate de tener el archivo en el mismo directorio o proporciona la ruta completa
-while True:
-    ticks = buscarticks()
-    print('Escaneando monedas...')
-    print('')
-    for tick in ticks:
-        klines = get_klines(tick)
-        knumber = len(klines)
-        if knumber > 0:
-            knumber = knumber - 1
-            analizar_klines(tick, klines, knumber)
-    print('Esperando 30 segundos...')
-    print('')
-    time.sleep(30)
+st.header("Noticias de Criptomonedas")
+noticias = obtener_noticias_cripto()
+if noticias:
+    for noticia in noticias:
+        st.subheader(noticia['title'])
+        st.write(f"[Leer más]({noticia['link']})") # Enlace en Markdown
+        st.markdown("---")
+else:
+    st.write("No se pudieron obtener noticias de criptomonedas.")
+
+st.header("Análisis de Sentimiento de Noticias")
+sentimiento = analizar_sentimiento_noticias(noticias)
+if noticias: # Solo mostrar si hay noticias para analizar
+    st.write(f"El sentimiento general de las noticias de criptomonedas es: **{sentimiento}**")
+else:
+    st.write("No se puede analizar el sentimiento sin noticias.")
+
+st.write("---")
+st.caption("Información obtenida en tiempo real (simulado para este ejemplo).")
