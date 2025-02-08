@@ -12,9 +12,7 @@ from textblob import TextBlob
 variacion = 5  # Variación en los últimos 30 minutos en porcentaje
 variacion_100 = 7  # Variación si volumen < 100k
 variacionfast = 2  # Variación en los últimos 2 minutos en porcentaje
-API_KEY = ""  # **¡REEMPLAZA CON TU API KEY REAL! O usa Streamlit Secrets**
-API_SECRET = "" # **¡REEMPLAZA CON TU API SECRET REAL! O usa Streamlit Secrets**
-client = Client(API_KEY, API_SECRET, tld='com') # Inicializar cliente Binance
+client = Client('', '', tld='com') # Inicializa el cliente de Binance con credenciales vacías (¡RECUERDA CONFIGURAR TUS CREDENCIALES SEGURAS!)
 
 # --- Funciones de tu script adaptadas para Streamlit ---
 class bcolors: # Mantener las clases de color para la salida en Streamlit (se mostrarán como texto plano)
@@ -28,10 +26,12 @@ def buscarticks():
     """Busca todos los símbolos de futuros en Binance"""
     ticks = []
     lista_ticks = client.futures_symbol_ticker()
+    # print(f'{bcolors.OKBLUE}Número de monedas encontradas: {len(lista_ticks)}{bcolors.ENDC}')
     for tick in lista_ticks:
         if tick['symbol'][-4:] != 'USDT':  # Seleccione solo monedas en par USDT
             continue
         ticks.append(tick['symbol'])
+    print(f'{bcolors.WARNING}Número de monedas encontradas en par USDT: {len(ticks)}{bcolors.ENDC}')
     return ticks
 
 def get_klines(tick):
