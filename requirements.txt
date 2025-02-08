@@ -1,0 +1,3 @@
+streamlit
+python-binance  # o binance-client, dependiendo de la librería correcta
+# Otras librerías que tu aplicación necesite
