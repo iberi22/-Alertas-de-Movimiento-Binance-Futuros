@@ -2,7 +2,7 @@ from binance.client import Client
 import time
 from datetime import datetime
 from signals import generate_signals
-from playsound import playsound
+#from playsound import playsound
 import requests
 import bs4
 from bs4 import BeautifulSoup
